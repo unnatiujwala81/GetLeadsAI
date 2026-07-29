@@ -1,0 +1,8 @@
+APP_NAME = "GetLeadsAI"
+VERSION = "1.0.0"
+
+WINDOW_WIDTH = 1200
+WINDOW_HEIGHT = 750
+
+THEME = "dark"
+COLOR_THEME = "blue"
