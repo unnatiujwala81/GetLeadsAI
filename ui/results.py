@@ -156,22 +156,22 @@ class Results(ctk.CTkFrame):
         )
 
         widths = {
-            "Business Name":250,
-            "Category":150,
-            "Address":260,
-            "Location":180,
-            "Phone":140,
-            "Email":220,
-            "Website":220,
-            "Facebook":180,
-            "Instagram":180,
-            "LinkedIn":180,
-            "YouTube":180,
-            "Google Rating":110,
-            "Reviews":100,
-            "Business Status":140,
+            "Business Name":300,
+            "Category":240,
+            "Address":300,
+            "Location":250,
+            "Phone":200,
+            "Email":300,
+            "Website":120,
+            "Facebook":120,
+            "Instagram":120,
+            "LinkedIn":120,
+            "YouTube":120,
+            "Google Rating":40,
+            "Reviews":80,
+            "Business Status":250,
             "Google Maps URL":250,
-            "Notes":200
+            "Notes":300
         }
 
         for col in columns:
@@ -446,23 +446,27 @@ class Results(ctk.CTkFrame):
         rows = []
 
         for item in self.table.get_children():
-            rows.append(
-                self.table.item(item)["values"]
-            )
+            
+            values = list(self.table.item(item)["values"])
+            links = self.row_links.get(item, {})
 
-        df = pd.DataFrame(
-            rows,
-            columns=self.table["columns"]
-        )
+            values[6] = links.get("Website", "")
+            values[7] = links.get("Facebook", "")
+            values[8] = links.get("Instagram", "")
+            values[9] = links.get("LinkedIn", "")
+            values[10] = links.get("YouTube", "")
+            values[14] = links.get("Google Maps URL", "")
 
-        df.to_csv(
-            filename,
-            index=False
-        )
+            rows.append(values)
+
+        df = pd.DataFrame(rows, columns=self.table["columns"])
+        df.to_csv(filename, index=False)
 
     # =====================================
     # EXPORT EXCEL
     # =====================================
+
+    from openpyxl.styles import Font, PatternFill, Alignment
 
     def export_excel(self):
 
@@ -474,19 +478,112 @@ class Results(ctk.CTkFrame):
         if not filename:
             return
 
-        rows = []
+        from openpyxl import Workbook
+        from openpyxl.styles import Font
 
-        for item in self.table.get_children():
-            rows.append(
-                self.table.item(item)["values"]
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Leads"
+        ws.freeze_panes = "A2"
+
+        ws.column_dimensions["A"].width = 30
+        ws.column_dimensions["B"].width = 12
+        ws.column_dimensions["C"].width = 35
+        ws.column_dimensions["D"].width = 22
+        ws.column_dimensions["E"].width = 20
+        ws.column_dimensions["F"].width = 28
+        ws.column_dimensions["G"].width = 15
+        ws.column_dimensions["H"].width = 15
+        ws.column_dimensions["I"].width = 15
+        ws.column_dimensions["J"].width = 15
+        ws.column_dimensions["K"].width = 15
+        ws.column_dimensions["L"].width = 10
+        ws.column_dimensions["M"].width = 12
+        ws.column_dimensions["N"].width = 25
+        ws.column_dimensions["O"].width = 20
+        ws.column_dimensions["P"].width = 30
+    
+        from openpyxl.styles import Font, PatternFill, Alignment
+
+        header_fill = PatternFill(
+            fill_type="solid",
+            start_color="D9EAD3",
+            end_color="D9EAD3"
+        )
+
+        row_fill = PatternFill(
+        fill_type="solid",
+        start_color="F8F9FA",
+        end_color="F8F9FA"
+        )
+
+        header_font = Font(bold=True)
+
+        columns = self.table["columns"]
+
+        link_text = {
+            7: "🌐 Visit",
+            8: "📘 Facebook",
+            9: "📷 Instagram",
+            10: "💼 LinkedIn",
+            11: "▶ YouTube",
+            15: "📍 View Map"
+        }
+
+        # Headers
+        header_font = Font(bold=True)
+
+        for col_num, heading in enumerate(columns, start=1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.value = heading
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(
+                horizontal="center",
+                vertical="center"
             )
 
-        df = pd.DataFrame(
-            rows,
-            columns=self.table["columns"]
-        )
+        # Data
+        for row_num, item in enumerate(self.table.get_children(), start=2):
 
-        df.to_excel(
-            filename,
-            index=False
-        )
+            values = list(self.table.item(item)["values"])
+            links = self.row_links.get(item, {})
+
+            values[6] = links.get("Website", "")
+            values[7] = links.get("Facebook", "")
+            values[8] = links.get("Instagram", "")
+            values[9] = links.get("LinkedIn", "")
+            values[10] = links.get("YouTube", "")
+            values[14] = links.get("Google Maps URL", "")
+
+            for col_num, value in enumerate(values, start=1):
+
+                cell = ws.cell(row=row_num, column=col_num)
+
+                if (
+                    isinstance(value, str)
+                    and value.startswith(("http://", "https://"))
+                    and col_num in link_text
+                ):
+                    cell.value = link_text[col_num]
+                    cell.hyperlink = value
+                    cell.font = Font(
+                        bold=True,
+                        color="0563C1",
+                        underline="single"
+                    )
+                    cell.alignment = Alignment(
+                        horizontal="center",
+                        vertical="center"
+                    )
+                else:
+                    cell.value = value
+
+                    if row_num % 2 == 0:
+                        cell.fill = row_fill
+
+            # Add filter to header
+            ws.auto_filter.ref = ws.dimensions
+
+            # Save Excel file
+            wb.save(filename)
